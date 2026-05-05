@@ -1,0 +1,14 @@
+# ai-jail sandbox configuration
+# https://github.com/akitaonrails/ai-jail
+# Edit freely. Regenerate with: ai-jail --clean --init
+
+command = ["opencode"]
+rw_maps = []
+ro_maps = []
+hide_dotdirs = []
+mask = [
+    ".env.production",
+    ".env.prod",
+    "credentials.json",
+]
+allow_tcp_ports = []

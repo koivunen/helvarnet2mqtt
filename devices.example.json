@@ -1,0 +1,26 @@
+[
+  {
+    "name": "TunableWhite 1.1",
+    "address": "@1.1.1.1",
+    "type": "Colour control",
+    "protocol": "DALI",
+    "load_level": 0.0,
+    "state": "0"
+  },
+  {
+    "name": null,
+    "address": "@1.1.4.55",
+    "type": "None",
+    "protocol": "Unknown Protocol",
+    "load_level": 0.0,
+    "state": 0
+  },
+  {
+    "name": "aistikattila_7",
+    "address": "@1.1.1.54",
+    "type": "321 - Multisensor",
+    "protocol": "DIGIDIM",
+    "load_level": 0.0,
+    "state": "0"
+  }
+]
