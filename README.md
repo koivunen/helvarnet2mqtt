@@ -90,8 +90,8 @@ Payload:
 
 ## License
 
-
+Apache
 
 ## Acknowledgements
 
-_We gratefully acknowledge the [Flavoria® Multidisciplinary Research Platform](https://www.flavoria.fi/en/) for letting us explore HelvarNet with the Aistikattila's lighting system. Special thanks also goes to almipap@utu.fi for helping with the aiohelvar integration of Aistikattila._
+_We gratefully acknowledge the [Flavoria® Multidisciplinary Research Platform](https://www.flavoria.fi/en/) for letting us explore HelvarNet with the Aistikattila's lighting system. Special thanks also goes to [AleksiPapalitsas](https://github.com/AleksiPapalitsas) for helping with the aiohelvar integration of Aistikattila._
