@@ -1,0 +1,35 @@
+[project]
+name = "helvar2mqtt"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "aiodebug>=2.3.0",
+    "aiohelvar",
+    "paho-mqtt>=2.1.0",
+    "python-dotenv>=1.2.2",
+    "rich>=15.0.0",
+    "structlog>=25.5.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.3.0",
+    "ruff>=0.15.12",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.ruff]
+line-length = 88
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.uv.sources]
+aiohelvar = { path = "../aiohelvar-koivunen" }
+
