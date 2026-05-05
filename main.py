@@ -14,14 +14,12 @@ import json
 import os
 from datetime import datetime, timezone
 
-import paho.mqtt.client as mqtt
+import aiohelvar.exceptions
+import aiomqtt
 import structlog
+from aiodebug.log_slow_callbacks import enable as enable_slow_callbacks
 from aiohelvar.router import Router
 from dotenv import load_dotenv
-
-from aiohelvar.parser.parser import CommandParser
-
-import aiohelvar.exceptions
 
 load_dotenv()
 
@@ -37,70 +35,11 @@ MQTT_PREFIX = os.getenv("MQTT_PREFIX", "helvar")
 logger = structlog.get_logger()
 
 
-def on_connect(client, userdata, flags, rc, properties=None):
-    if rc == 0:
-        logger.info("connected_to_mqtt_broker")
-    else:
-        logger.error("failed_to_connect_to_mqtt_broker", rc=rc)
-
-
-def on_disconnect(client, userdata, rc, properties=None):
-    logger.info("disconnected_from_mqtt_broker", rc=rc)
-
-
-async def main():
-    parser = CommandParser()
-
-    mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-    mqtt_client.on_connect = on_connect
-    mqtt_client.on_disconnect = on_disconnect
-
-    if MQTT_USERNAME:
-        mqtt_client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
-
-    logger.info("connecting_to_mqtt", broker=MQTT_BROKER, port=MQTT_PORT)
-    mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
-    mqtt_client.loop_start()
-
-    logger.info("connecting_to_router", address=ROUTER_IP)
-    router = Router(ROUTER_IP, ROUTER_PORT)
-    await router.connect()
-    logger.info("connected_to_router", workgroup=router.workgroup_name)
-    
-    await router.get_groups()
-    await router.get_devices()
-    await router.get_scenes()
-
-    await router.groups.force_update_groups()
-
-    logger.info("router_initialized", device_count=len(router.devices.devices))
-    await asyncio.sleep(2)
-
-    devices_with_type = [d for d in router.devices.devices.values() if d.type]
-
-    logger.info("querying_inputs", device_count=len(devices_with_type))
-    device_state = {}
-    for addr, device in router.devices.devices.items():
-        if not device.type:
-            continue
-
-        logger.info("querying_device", device=device.name, device_type=device.type)
-
-        try:
-            response = await router.devices.query_inputs(device)
-            if response:
-                logger.info("device_query_response", device=device.name, response=str(response))
-                device_state[device] = response
-            else:
-                logger.warning("device_no_response", device=device.name)
-        except aiohelvar.exceptions.PropertyDoesNotExistError:
-            logger.info("device_query_not_applicable", device=device.name)
-
-    logger.info(
-        "starting_polling",
-        queryable_devices=len(device_state),
-        poll_interval=POLL_INTERVAL,
-    )
+async def polling_loop(
+    mqtt_client: aiomqtt.Client,
+    router: Router,
+    device_state: dict,
+) -> None:
     loop = asyncio.get_running_loop()
     while True:
         device_state_loop = list(device_state.items())
@@ -127,7 +66,7 @@ async def main():
                             "timestamp": datetime.now(timezone.utc).isoformat(),
                         }
                     )
-                    mqtt_client.publish(topic, payload)
+                    await mqtt_client.publish(topic, payload)
                     logger.info(
                         "input_state_changed",
                         device=device.name,
@@ -149,7 +88,62 @@ async def main():
             if delay > 0:
                 await asyncio.sleep(delay)
 
-        logger.debug("polling_cycle_complete")
+
+
+async def main() -> None:
+    enable_slow_callbacks(slow_duration=0.1)
+
+    logger.info("connecting_to_mqtt", broker=MQTT_BROKER, port=MQTT_PORT)
+    async with aiomqtt.Client(
+        MQTT_BROKER,
+        port=MQTT_PORT,
+        username=MQTT_USERNAME if MQTT_USERNAME else None,
+        password=MQTT_PASSWORD if MQTT_PASSWORD else None,
+    ) as mqtt_client:
+        logger.info("connected_to_mqtt_broker")
+
+        logger.info("connecting_to_router", address=ROUTER_IP)
+        router = Router(ROUTER_IP, ROUTER_PORT)
+        await router.connect()
+        logger.info("connected_to_router", workgroup=router.workgroup_name)
+
+        await router.initialize()
+
+        logger.info("router_initialized", device_count=len(router.devices.devices))
+        await asyncio.sleep(1)
+
+        devices_with_type = [d for d in router.devices.devices.values() if d.type]
+
+        logger.info("querying_inputs", device_count=len(devices_with_type))
+        device_state = {}
+        for device in router.devices.devices.values():
+            if not device.type:
+                continue
+
+            logger.info("querying_device", device=device.name, device_type=device.type)
+
+            try:
+                response = await router.devices.query_inputs(device)
+                if response:
+                    logger.info(
+                        "device_query_response",
+                        device=device.name,
+                        response=str(response),
+                    )
+                    device_state[device] = response
+                else:
+                    logger.warning("device_no_response", device=device.name)
+            except aiohelvar.exceptions.PropertyDoesNotExistError:
+                logger.info("device_query_not_applicable", device=device.name)
+
+        logger.info(
+            "starting_polling",
+            queryable_devices=len(device_state),
+            poll_interval=POLL_INTERVAL,
+        )
+
+        async with asyncio.TaskGroup() as tg:
+            tg.create_task(polling_loop(mqtt_client, router, device_state))
 
 
 asyncio.run(main())
