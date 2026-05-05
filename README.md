@@ -9,6 +9,7 @@ Polls device inputs and publishes state changes to MQTT, while also accepting lo
 
 - Python 3.14+
 - [uv](https://docs.astral.sh/uv/getting-started/installation/)
+- [aiohelvar](https://github.com/tomplayford/aiohelvar) - async Python library for Helvar router communication
 - A Helvar router accessible over the network
 - An MQTT broker
 
@@ -71,6 +72,7 @@ Payload:
 
 ## Architecture
 
+- Uses `aiohelvar` for async communication with Helvar routers
 - Uses `aiomqtt` for fully async MQTT communication
 - Uses `asyncio.TaskGroup` for structured concurrency (polling loop + command handler run concurrently)
 - Uses `aiodebug` to log slow callbacks (>100ms) for debugging
@@ -108,3 +110,5 @@ limitations under the License.
 ## Acknowledgements
 
 _We gratefully acknowledge the [Flavoria® Multidisciplinary Research Platform](https://www.flavoria.fi/en/) for letting us explore HelvarNet with the Aistikattila's lighting system. Special thanks also goes to [AleksiPapalitsas](https://github.com/AleksiPapalitsas) for helping with the aiohelvar integration of Aistikattila._
+
+_Thanks to [tomplayford](https://github.com/tomplayford) for [aiohelvar](https://github.com/tomplayford/aiohelvar), an async Python library for communicating with Helvar routers, and [homeassistant_helvar](https://github.com/tomplayford/homeassistant_helvar/), a Home Assistant integration for Helvar lighting systems._
